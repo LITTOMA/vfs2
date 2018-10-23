@@ -59,6 +59,9 @@ class VFS2(object):
     def extract(self, out_dir):
         pass
     
+    def list(self):
+        pass
+
     def save(self, path):
         pass
 
