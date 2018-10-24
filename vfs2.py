@@ -121,6 +121,14 @@ class VFS2(object):
                 raise ValueError("Directory not found.")
         return self.change_directory(next_path)
     
+    def curdir(self):
+        parent = self.cur_node.parent
+        result = self.cur_node.name + '/'
+        while parent:
+            result = parent.name + '/' + result
+            parent = parent.parent
+        return result
+    
     def exists(self, path):
         pass
     
@@ -139,12 +147,6 @@ class VFS2(object):
 
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
+    vfs.change_directory('/ui/../strings')
     vfs.list_dir()
-    vfs.change_directory('/fonts')
-    vfs.list_dir()
-    vfs.change_directory('../ui')
-    vfs.list_dir()
-    vfs.change_directory('/ui')
-    vfs.list_dir()
-    vfs.change_directory('/')
-    vfs.list_dir()
+    print vfs.curdir()
