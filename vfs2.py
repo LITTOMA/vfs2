@@ -135,11 +135,15 @@ class VFS2(object):
     def extract(self, out_dir):
         pass
     
-    def list_dir(self):
+    def list_dir(self, path=None):
+        origndir = self.curdir()
+        if path:
+            self.change_directory(path)
         print 'Contents of '+self.cur_node.name+'/:'
         for e in self.cur_node.entries:
             print e.name
         print ''
+        self.change_directory(origndir)
 
     def save(self, path):
         pass
@@ -147,6 +151,6 @@ class VFS2(object):
 
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
-    vfs.change_directory('/ui/../strings')
-    vfs.list_dir()
+    print vfs.curdir()
+    vfs.list_dir('/ui/../strings')
     print vfs.curdir()
