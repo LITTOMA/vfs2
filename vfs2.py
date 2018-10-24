@@ -3,7 +3,7 @@ import struct
 
 class VFS2(object):
 
-    class Folder(object):
+    class Directory(object):
         def __init__(self, fs):
             (self.unk1, self.id, 
             self.parent_id, self.unk3, 
@@ -41,7 +41,7 @@ class VFS2(object):
         folder_count ,= struct.unpack('i', fp.read(4))
         folders = []
         for i in range(folder_count):
-            folders.append(VFS2.Folder(fp))
+            folders.append(VFS2.Directory(fp))
 
         file_count ,= struct.unpack('i', fp.read(4))
         files = []
@@ -62,13 +62,6 @@ class VFS2(object):
             str_len ,= struct.unpack('i', fp.read(4))
             folders[i].name = fp.read(str_len)
         
-        for i in range(file_count):
-            folder = folders[files[i].parent_id]
-            if folder.id != files[i].parent_id:
-                raise ValueError("Folder ID mismatch.")
-            folder.entries.append(files[i])
-            files[i].parent = folder
-        
         for i in range(folder_count):
             if folders[i].parent_id >= 0:
                 parent = folders[folders[i].parent_id]
@@ -78,6 +71,13 @@ class VFS2(object):
                 self.tree_root = folders[i]
                 folders[i].parent = None
 
+        for i in range(file_count):
+            parent = folders[files[i].parent_id]
+            if parent.id != files[i].parent_id:
+                raise ValueError("Parent ID mismatch.")
+            parent.entries.append(files[i])
+            files[i].parent = parent
+        
         fp.seek(self.data_offset, 0)
         self.fs = fp
         self.cur_node = self.tree_root
@@ -118,8 +118,10 @@ class VFS2(object):
         pass
     
     def list_dir(self):
+        print 'Contents of '+self.cur_node.name+'/:'
         for e in self.cur_node.entries:
             print e.name
+        print ''
 
     def save(self, path):
         pass
@@ -127,5 +129,8 @@ class VFS2(object):
 
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
+    vfs.list_dir()
     vfs.change_directory('fonts/')
+    vfs.list_dir()
+    vfs.change_directory('../ui/')
     vfs.list_dir()
