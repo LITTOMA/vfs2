@@ -98,6 +98,7 @@ class VFS2(object):
         if not path:
             return
         
+        #Add a slash at the end of the path to avoid exception at unpacking path split result
         path += '/'
         path = re.sub('/+', '/', path)
         next_node, next_path = path.split('/', 1)
@@ -108,12 +109,16 @@ class VFS2(object):
         elif next_node == '..' and self.cur_node.parent_id != -1:
             self.cur_node = self.cur_node.parent
         else:
+            found = False
             for e in self.cur_node.entries:
                 if e.name == next_node:
                     if not isinstance(e, VFS2.Directory):
                         raise TypeError("Not a directory.")
                     self.cur_node = e
+                    found = True
                     break
+            if not found:
+                raise ValueError("Directory not found.")
         return self.change_directory(next_path)
     
     def exists(self, path):
