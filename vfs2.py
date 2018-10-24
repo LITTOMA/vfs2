@@ -1,5 +1,8 @@
-import struct
+import os
 import re
+import struct
+import zlib
+from io import BytesIO
 
 
 class VFS2(object):
@@ -13,6 +16,9 @@ class VFS2(object):
             self.parent = None
             self.name = ''
 
+        def extract(self, fs, dirout='.', decompress=False):
+            base_data_offset = fs.tell()
+
     class File(object):
         def __init__(self, fs):
             (self.unk1, self.id, 
@@ -20,6 +26,29 @@ class VFS2(object):
             self.data_offset, self.data_size) = struct.unpack('iiiiii', fs.read(struct.calcsize('iiiiii')))
             self.parent = None
             self.name = ''
+            self.data = ''
+        
+        def extract(self, fs, dirout='.', decompress=False):
+            base_data_offset = fs.tell()
+
+            fs.seek(self.data_offset, 1)
+            self.data = fs.read(self.data_size)
+            if decompress:
+                self.data = self.decompress(self.data)
+            path_out = dirout + '/' + self.name
+            open(path_out, 'wb').write(self.data)
+
+            fs.seek(base_data_offset)
+        
+        def decompress(self, data):
+            ms = BytesIO(data)
+
+            uncompressed_size ,= struct.unpack('i', ms.read(4))
+            result = zlib.decompress(ms.read())
+            if len(result) != uncompressed_size:
+                raise Exception("Decompress ERROR!")
+
+            return result
         
     def __init__(self, fp=None):
         if fp:
@@ -98,7 +127,8 @@ class VFS2(object):
         if not path:
             return
         
-        #Add a slash at the end of the path to avoid exception at unpacking path split result
+        # Add a slash at the end of the path to avoid 
+        # exception at unpacking path split result.
         path += '/'
         path = re.sub('/+', '/', path)
         next_node, next_path = path.split('/', 1)
@@ -131,14 +161,24 @@ class VFS2(object):
     
     def exists(self, path):
         pass
-    
-    def extract(self, out_dir):
-        pass
-    
-    def list_dir(self, path=None, recursive=False):
+
+    def extract(self, path='/', dirout='.', decompress=False):
         origndir = self.curdir()
-        if path:
-            self.change_directory(path)
+
+        dirname, name = os.path.split(path)
+        self.change_directory(dirname)
+        for e in self.cur_node.entries:
+            if e.name == name:
+                e.extract(self.fs, dirout=dirout, decompress=decompress)
+        
+        self.change_directory(origndir)
+
+    def getallpaths(self):
+        pass
+
+    def list_dir(self, path='.', recursive=False):
+        origndir = self.curdir()
+        self.change_directory(path)
         
         if not recursive:
             print 'Contents of %s/:'%self.cur_node.name
@@ -161,4 +201,6 @@ class VFS2(object):
 
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
-    vfs.list_dir('/', recursive=True)
+    vfs.change_directory('ui')
+    #vfs.list_dir('.', recursive=True)
+    vfs.extract('/strings/strings_en.str', decompress=True)
