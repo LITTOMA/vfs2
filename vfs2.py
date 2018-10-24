@@ -1,4 +1,5 @@
 import struct
+import re
 
 
 class VFS2(object):
@@ -97,18 +98,22 @@ class VFS2(object):
         if not path:
             return
         
+        path += '/'
+        path = re.sub('/+', '/', path)
         next_node, next_path = path.split('/', 1)
-        if (not next_node) or (next_node == '.'):
-            return
-        
-        if next_node == '..' and self.cur_node.parent_id != -1:
+        if not next_node:
+            self.cur_node = self.tree_root
+        elif next_node == '.':
+            pass
+        elif next_node == '..' and self.cur_node.parent_id != -1:
             self.cur_node = self.cur_node.parent
-        
-        for e in self.cur_node.entries:
-            if e.name == next_node:
-                self.cur_node = e
-                break
-        
+        else:
+            for e in self.cur_node.entries:
+                if e.name == next_node:
+                    if not isinstance(e, VFS2.Directory):
+                        raise TypeError("Not a directory.")
+                    self.cur_node = e
+                    break
         return self.change_directory(next_path)
     
     def exists(self, path):
@@ -130,7 +135,11 @@ class VFS2(object):
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
     vfs.list_dir()
-    vfs.change_directory('fonts/')
+    vfs.change_directory('/fonts')
     vfs.list_dir()
-    vfs.change_directory('../ui/')
+    vfs.change_directory('../ui')
+    vfs.list_dir()
+    vfs.change_directory('/ui')
+    vfs.list_dir()
+    vfs.change_directory('/')
     vfs.list_dir()
