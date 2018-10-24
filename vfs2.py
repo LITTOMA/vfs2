@@ -135,14 +135,24 @@ class VFS2(object):
     def extract(self, out_dir):
         pass
     
-    def list_dir(self, path=None):
+    def list_dir(self, path=None, recursive=False):
         origndir = self.curdir()
         if path:
             self.change_directory(path)
-        print 'Contents of '+self.cur_node.name+'/:'
+        
+        if not recursive:
+            print 'Contents of %s/:'%self.cur_node.name
+
         for e in self.cur_node.entries:
-            print e.name
-        print ''
+            print '|-- '*self.cur_depth + e.name
+            if recursive and isinstance(e, VFS2.Directory):
+                self.cur_depth += 1
+                self.list_dir(e.name, recursive=recursive)
+        
+        if recursive:
+            self.cur_depth -= 1
+        else:
+            print ''
         self.change_directory(origndir)
 
     def save(self, path):
@@ -151,6 +161,4 @@ class VFS2(object):
 
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
-    print vfs.curdir()
-    vfs.list_dir('/ui/../strings')
-    print vfs.curdir()
+    vfs.list_dir('/', recursive=True)
