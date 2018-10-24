@@ -16,8 +16,12 @@ class VFS2(object):
             self.parent = None
             self.name = ''
 
-        def extract(self, fs, dirout='.', decompress=False):
-            base_data_offset = fs.tell()
+        def extract(self, vfs, dirout='.', decompress=False):
+            exdir = dirout+vfs.curdir()+self.name
+            if not os.path.exists(exdir):
+                os.makedirs(exdir)
+            for e in self.entries:
+                e.extract(vfs, exdir, decompress)
 
     class File(object):
         def __init__(self, fs):
@@ -28,17 +32,15 @@ class VFS2(object):
             self.name = ''
             self.data = ''
         
-        def extract(self, fs, dirout='.', decompress=False):
-            base_data_offset = fs.tell()
-
-            fs.seek(self.data_offset, 1)
-            self.data = fs.read(self.data_size)
-            if decompress:
+        def extract(self, vfs, dirout='.', decompress=False):
+            vfs.fs.seek(self.data_offset+vfs.data_offset, 0)
+            self.data = vfs.fs.read(self.data_size)
+            if decompress and self.compress_type>0:
                 self.data = self.decompress(self.data)
             path_out = dirout + '/' + self.name
             open(path_out, 'wb').write(self.data)
 
-            fs.seek(base_data_offset)
+            vfs.fs.seek(vfs.data_offset)
         
         def decompress(self, data):
             ms = BytesIO(data)
@@ -167,9 +169,7 @@ class VFS2(object):
 
         dirname, name = os.path.split(path)
         self.change_directory(dirname)
-        for e in self.cur_node.entries:
-            if e.name == name:
-                e.extract(self.fs, dirout=dirout, decompress=decompress)
+        self.cur_node.extract(self, dirout=dirout, decompress=decompress)
         
         self.change_directory(origndir)
 
@@ -201,6 +201,6 @@ class VFS2(object):
 
 if '__main__' == __name__:
     vfs = VFS2('data.vfs')
-    vfs.change_directory('ui')
-    #vfs.list_dir('.', recursive=True)
-    vfs.extract('/strings/strings_en.str', decompress=True)
+    #vfs.change_directory('ui')
+    #vfs.list_dir('/', recursive=True)
+    vfs.extract('/ui/', dirout='a', decompress=True)
