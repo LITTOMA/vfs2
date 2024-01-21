@@ -203,4 +203,4 @@ if '__main__' == __name__:
     vfs = VFS2('data.vfs')
     #vfs.change_directory('ui')
     #vfs.list_dir('/', recursive=True)
-    vfs.extract('/ui/', dirout='a', decompress=True)
+    vfs.extract('/', dirout='a', decompress=True)
